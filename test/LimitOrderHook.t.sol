@@ -48,7 +48,7 @@ contract LimitOrderHookTest is BaseTest {
         // Deploy the hook to an address with the correct flags
         address flags = address(
             uint160(
-                Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURN_DELTA_FLAG
+                Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
             ) ^ (0x4444 << 144) // Namespace the hook to avoid collisions
         );
         bytes memory constructorArgs = abi.encode(poolManager); // Add all the necessary constructor arguments from the hook
@@ -87,6 +87,10 @@ contract LimitOrderHookTest is BaseTest {
     }
 
     function testPlaceLimitOrder() public {
+        // Approve poolManager to spend tokens
+        currency0.approve(address(poolManager), type(uint256).max);
+        currency1.approve(address(poolManager), type(uint256).max);
+
         // Place a limit order: sell token0 for token1 when tick <= -1000
         int24 targetTick = -1000;
         uint256 amountIn = 1e18;
@@ -95,7 +99,7 @@ contract LimitOrderHookTest is BaseTest {
         hook.placeOrder(poolKey, true, amountIn, targetTick, minAmountOut);
 
         // Check that order was placed
-        LimitOrderHook.LimitOrder memory order = hook.orders(poolId, 0);
+        LimitOrderHook.LimitOrder memory order = hook.getOrder(poolId, 0);
         assertEq(order.user, address(this));
         assertEq(order.zeroForOne, true);
         assertEq(order.amountIn, amountIn);
@@ -109,8 +113,9 @@ contract LimitOrderHookTest is BaseTest {
         uint256 amountIn = 1e18;
         uint256 minAmountOut = 0;
 
-        // Approve and transfer tokens
-        currency0.transfer(address(hook), amountIn);
+        // Approve poolManager to spend tokens
+        currency0.approve(address(poolManager), type(uint256).max);
+        currency1.approve(address(poolManager), type(uint256).max);
 
         hook.placeOrder(poolKey, true, amountIn, targetTick, minAmountOut);
 
@@ -127,6 +132,7 @@ contract LimitOrderHookTest is BaseTest {
         });
 
         // Check that the order was executed (marked inactive)
-        assertEq(hook.orders(poolId, 0).active, false);
+        LimitOrderHook.LimitOrder memory executedOrder = hook.getOrder(poolId, 0);
+        assertEq(executedOrder.active, false);
     }
 }

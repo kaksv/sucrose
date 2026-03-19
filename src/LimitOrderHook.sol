@@ -8,7 +8,7 @@ import {IPoolManager, SwapParams, ModifyLiquidityParams} from "@uniswap/v4-core/
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/src/types/PoolId.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
-import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary, toBeforeSwapDelta} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
@@ -49,6 +49,10 @@ contract LimitOrderHook is BaseHook {
         });
     }
 
+    function getOrder(PoolId poolId, uint256 index) external view returns (LimitOrder memory) {
+        return orders[poolId][index];
+    }
+
     function placeOrder(
         PoolKey calldata key,
         bool zeroForOne,
@@ -79,8 +83,8 @@ contract LimitOrderHook is BaseHook {
         PoolId poolId = key.toId();
         (uint160 sqrtPriceX96, int24 currentTick,,) = poolManager.getSlot0(poolId);
 
-        int128 deltaAmount0 = 0;
-        int128 deltaAmount1 = 0;
+        int128 deltaSpecified = 0;
+        int128 deltaUnspecified = 0;
 
         for (uint i = 0; i < orders[poolId].length; i++) {
             LimitOrder storage order = orders[poolId][i];
@@ -100,21 +104,22 @@ contract LimitOrderHook is BaseHook {
                 uint256 amountToFill = order.amountIn;
                 if (amountToFill > uint128(type(int128).max)) amountToFill = uint128(type(int128).max);
 
-                // For simplicity, assume we fill the entire order
+                // For simplicity, assume we fill the entire order and provide equivalent output
+                // In reality, you'd calculate the expected output based on the order
                 if (order.zeroForOne) {
-                    deltaAmount0 += int128(amountToFill);
-                    // Calculate expected output, but for now, assume minAmountOut is met
+                    deltaSpecified = -int128(uint128(amountToFill)); // Take token0
+                    deltaUnspecified = int128(uint128(amountToFill)); // Provide token1 (simplified)
                 } else {
-                    deltaAmount1 += int128(amountToFill);
+                    deltaSpecified = int128(uint128(amountToFill)); // Provide token0
+                    deltaUnspecified = -int128(uint128(amountToFill)); // Take token1
                 }
 
                 order.active = false; // Mark as filled
+                break; // Fill only one order for now
             }
         }
 
-        BeforeSwapDelta delta = BeforeSwapDelta.wrap(
-            bytes32(uint256(uint128(deltaAmount0)) | (uint256(uint128(deltaAmount1)) << 128))
-        );
+        BeforeSwapDelta delta = toBeforeSwapDelta(deltaSpecified, deltaUnspecified);
 
         return (BaseHook.beforeSwap.selector, delta, 0);
     }

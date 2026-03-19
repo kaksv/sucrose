@@ -41,11 +41,47 @@ forge install
 forge test
 ```
 
-### Local Development
+### How It Works
 
-Other than writing unit tests (recommended!), you can only deploy & test hooks on [anvil](https://book.getfoundry.sh/anvil/) locally. Scripts are available in the `script/` directory, which can be used to deploy hooks, create pools, provide liquidity and swap tokens. The scripts support both local `anvil` environment as well as running them directly on a production network.
+The LimitOrderHook allows users to place limit orders that execute automatically when the pool price reaches the specified tick level during swaps.
 
-### Executing locally with using **Anvil**:
+#### Placing Orders
+Users can place limit orders by calling `placeOrder()` with:
+- `zeroForOne`: Direction of the order (true for selling token0, false for selling token1)
+- `amountIn`: Amount of tokens to sell
+- `targetTick`: The tick price at which to execute the order
+- `minAmountOut`: Minimum output amount expected
+
+When an order is placed, the hook takes the input tokens from the user using `poolManager.take()`.
+
+#### Order Execution
+During swaps, the `beforeSwap()` hook checks if any pending orders should be filled based on the current tick and swap direction:
+- For sell orders (zeroForOne=true): Executes when current tick ≤ targetTick
+- For buy orders (zeroForOne=false): Executes when current tick ≥ targetTick
+
+When an order is filled, the hook returns a `BeforeSwapDelta` to modify the swap amounts, effectively executing the limit order by adjusting the token flows.
+
+#### Key Features
+- **On-chain execution**: Orders execute automatically during regular swaps
+- **Tick-based pricing**: Uses Uniswap's tick system for precise price levels
+- **Gas efficient**: Integrates with existing swap flows
+- **Permissioned**: Uses specific hook flags for controlled execution
+
+### Deployment
+
+The hook requires specific permissions encoded in its deployment address:
+- `beforeSwap`: To intercept swaps
+- `beforeSwapReturnDelta`: To modify swap amounts for order execution
+
+### Deployment on Unichain Testnet
+
+This hook is designed to work on the Unichain testnet. To deploy:
+
+1. Set up your environment variables for the testnet
+2. Use the deployment scripts in `script/` directory
+3. The hook will be deployed with the correct permissions for limit order execution
+
+Note: Ensure your deployment address has the required hook flags encoded for `beforeSwap` and `beforeSwapReturnDelta` permissions.
 
 1. Start Anvil (or fork a specific chain using anvil):
 

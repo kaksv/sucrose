@@ -1,17 +1,21 @@
-# Uniswap v4 Limit Order Hook
+# Sucrose
 
-**A Uniswap v4 Hook that enables on-chain limit orders 🦄**
+**Uniswap v4 Limit Order Hook for Unichain 🦄**
+
+**Enable users to set buy/sell orders at specific price points (ticks) that execute automatically during swaps 🦄**
+
+This Uniswap v4 Hook enables users to set buy/sell orders at specific price points (ticks) that execute automatically during swaps, similar to centralized exchange limit orders but fully on-chain. Could include take-profit or stop-loss variants.
+
+Sucrose solves the need for off-chain bots, reduces slippage, and boosts composability with other DeFi protocols. Community examples include "take-profit" hooks that liquidate positions at target prices.
 
 ### Get Started
-
-This project implements a Uniswap v4 Hook that allows users to place limit orders that execute automatically during swaps when the price reaches specific tick levels. This provides centralized exchange-like limit order functionality fully on-chain.
 
 Start by creating a new repository using the "Use this template" button at the top right of this page. Alternatively you can also click this link:
 
 [![Use this Template](https://img.shields.io/badge/Use%20this%20Template-101010?style=for-the-badge&logo=github)](https://github.com/uniswapfoundation/v4-template/generate)
 
-1. The limit order hook [LimitOrderHook.sol](src/LimitOrderHook.sol) demonstrates the `beforeSwap()` hook with `BeforeSwapDelta` to intercept and modify swaps for order execution
-2. The test template [LimitOrderHook.t.sol](test/LimitOrderHook.t.sol) preconfigures the v4 pool manager, test tokens, and test liquidity with limit order scenarios.
+1. The Sucrose hook [Sucrose.sol](src/Sucrose.sol) demonstrates the `beforeSwap()` hook with `BeforeSwapDelta` to intercept and modify swaps for order execution
+2. The test template [Sucrose.t.sol](test/Sucrose.t.sol) preconfigures the v4 pool manager, test tokens, and test liquidity with limit order scenarios.
 
 <details>
 <summary>Updating to v4-template:latest</summary>
@@ -43,29 +47,30 @@ forge test
 
 ### How It Works
 
-The LimitOrderHook allows users to place limit orders that execute automatically when the pool price reaches the specified tick level during swaps.
+The LimitOrderHook allows users to set buy/sell orders at specific price points (ticks) that execute automatically during swaps.
+
+#### Order Types
+- **Limit Orders**: Buy or sell at a specific price level
+- **Take-Profit Orders**: Sell when price reaches a target (profit-taking)
+- **Stop-Loss Orders**: Sell when price drops to a certain level (loss prevention)
 
 #### Placing Orders
-Users can place limit orders by calling `placeOrder()` with:
-- `zeroForOne`: Direction of the order (true for selling token0, false for selling token1)
-- `amountIn`: Amount of tokens to sell
-- `targetTick`: The tick price at which to execute the order
+Users can place orders by calling `placeOrder()` with:
+- `zeroForOne`: Direction (true for selling token0, false for selling token1)
+- `amountIn`: Amount of tokens to trade
+- `targetTick`: The tick price at which to execute
 - `minAmountOut`: Minimum output amount expected
 
-When an order is placed, the hook takes the input tokens from the user using `poolManager.take()`.
+When an order is placed, the hook takes the input tokens from the user.
 
-#### Order Execution
-During swaps, the `beforeSwap()` hook checks if any pending orders should be filled based on the current tick and swap direction:
-- For sell orders (zeroForOne=true): Executes when current tick ≤ targetTick
-- For buy orders (zeroForOne=false): Executes when current tick ≥ targetTick
+#### Automatic Execution
+During swaps, the `beforeSwap()` hook checks if any pending orders should be filled based on the current tick and swap direction. When conditions are met, the hook returns a `BeforeSwapDelta` to modify the swap amounts, effectively executing the order by adjusting token flows.
 
-When an order is filled, the hook returns a `BeforeSwapDelta` to modify the swap amounts, effectively executing the limit order by adjusting the token flows.
-
-#### Key Features
-- **On-chain execution**: Orders execute automatically during regular swaps
-- **Tick-based pricing**: Uses Uniswap's tick system for precise price levels
-- **Gas efficient**: Integrates with existing swap flows
-- **Permissioned**: Uses specific hook flags for controlled execution
+#### Benefits
+- **Eliminates off-chain bots**: Orders execute on-chain without monitoring
+- **Reduces slippage**: Executes at exact price points
+- **Boosts composability**: Integrates with other DeFi protocols
+- **Gas efficient**: Leverages existing swap flows
 
 ### Deployment
 
@@ -73,11 +78,11 @@ The hook requires specific permissions encoded in its deployment address:
 - `beforeSwap`: To intercept swaps
 - `beforeSwapReturnDelta`: To modify swap amounts for order execution
 
-### Deployment on Unichain Testnet
+### Deployment on Unichain
 
-This hook is designed to work on the Unichain testnet. To deploy:
+Sucrose is designed for deployment on the Unichain testnet. To deploy:
 
-1. Set up your environment variables for the testnet
+1. Set up your environment variables for Unichain
 2. Use the deployment scripts in `script/` directory
 3. The hook will be deployed with the correct permissions for limit order execution
 

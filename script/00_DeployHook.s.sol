@@ -6,9 +6,9 @@ import {HookMiner} from "@uniswap/v4-periphery/src/utils/HookMiner.sol";
 
 import {BaseScript} from "./base/BaseScript.sol";
 
-import {LimitOrderHook} from "../src/LimitOrderHook.sol";
+import {Sucrose} from "../src/Sucrose.sol";
 
-/// @notice Mines the address and deploys the LimitOrderHook.sol Hook contract
+/// @notice Mines the address and deploys the Sucrose.sol Hook contract
 contract DeployHookScript is BaseScript {
     function run() public {
         // hook contracts must have specific flags encoded in the address
@@ -19,11 +19,11 @@ contract DeployHookScript is BaseScript {
         // Mine a salt that will produce a hook address with the correct flags
         bytes memory constructorArgs = abi.encode(poolManager);
         (address hookAddress, bytes32 salt) =
-            HookMiner.find(CREATE2_FACTORY, flags, type(LimitOrderHook).creationCode, constructorArgs);
+            HookMiner.find(CREATE2_FACTORY, flags, type(Sucrose).creationCode, constructorArgs);
 
         // Deploy the hook using CREATE2
         vm.startBroadcast();
-        LimitOrderHook hook = new LimitOrderHook{salt: salt}(poolManager);
+        Sucrose hook = new Sucrose{salt: salt}(poolManager);
         vm.stopBroadcast();
 
         require(address(hook) == hookAddress, "DeployHookScript: Hook Address Mismatch");

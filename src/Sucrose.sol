@@ -13,11 +13,11 @@ import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
 
-contract LimitOrderHook is BaseHook {
+contract Sucrose is BaseHook {
     using PoolIdLibrary for PoolKey;
     using StateLibrary for IPoolManager;
 
-    struct LimitOrder {
+    struct SucroseOrder {
         address user;
         bool zeroForOne; // true: sell token0 for token1, false: sell token1 for token0
         uint256 amountIn;
@@ -26,7 +26,7 @@ contract LimitOrderHook is BaseHook {
         bool active;
     }
 
-    mapping(PoolId => LimitOrder[]) public orders;
+    mapping(PoolId => SucroseOrder[]) public orders;
 
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
@@ -49,7 +49,7 @@ contract LimitOrderHook is BaseHook {
         });
     }
 
-    function getOrder(PoolId poolId, uint256 index) external view returns (LimitOrder memory) {
+    function getOrder(PoolId poolId, uint256 index) external view returns (SucroseOrder memory) {
         return orders[poolId][index];
     }
 
@@ -61,7 +61,7 @@ contract LimitOrderHook is BaseHook {
         uint256 minAmountOut
     ) external {
         PoolId poolId = key.toId();
-        orders[poolId].push(LimitOrder({
+        orders[poolId].push(SucroseOrder({
             user: msg.sender,
             zeroForOne: zeroForOne,
             amountIn: amountIn,
@@ -87,7 +87,7 @@ contract LimitOrderHook is BaseHook {
         int128 deltaUnspecified = 0;
 
         for (uint i = 0; i < orders[poolId].length; i++) {
-            LimitOrder storage order = orders[poolId][i];
+            SucroseOrder storage order = orders[poolId][i];
             if (!order.active) continue;
 
             bool shouldFill = false;

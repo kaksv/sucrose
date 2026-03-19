@@ -2,6 +2,7 @@
 pragma solidity ^0.8.26;
 
 import {Test} from "forge-std/Test.sol";
+import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
@@ -18,10 +19,10 @@ import {Constants} from "@uniswap/v4-core/test/utils/Constants.sol";
 
 import {EasyPosm} from "./utils/libraries/EasyPosm.sol";
 
-import {LimitOrderHook} from "../src/LimitOrderHook.sol";
+import {Sucrose} from "../src/Sucrose.sol";
 import {BaseTest} from "./utils/BaseTest.sol";
 
-contract LimitOrderHookTest is BaseTest {
+contract SucroseTest is BaseTest {
     using EasyPosm for IPositionManager;
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
@@ -32,7 +33,7 @@ contract LimitOrderHookTest is BaseTest {
 
     PoolKey poolKey;
 
-    LimitOrderHook hook;
+    Sucrose hook;
     PoolId poolId;
 
     uint256 tokenId;
@@ -52,8 +53,8 @@ contract LimitOrderHookTest is BaseTest {
             ) ^ (0x4444 << 144) // Namespace the hook to avoid collisions
         );
         bytes memory constructorArgs = abi.encode(poolManager); // Add all the necessary constructor arguments from the hook
-        deployCodeTo("LimitOrderHook.sol:LimitOrderHook", constructorArgs, flags);
-        hook = LimitOrderHook(flags);
+        deployCodeTo("Sucrose.sol:Sucrose", constructorArgs, flags);
+        hook = Sucrose(flags);
 
         // Create the pool
         poolKey = PoolKey(currency0, currency1, 3000, 60, IHooks(hook));
@@ -88,8 +89,8 @@ contract LimitOrderHookTest is BaseTest {
 
     function testPlaceLimitOrder() public {
         // Approve poolManager to spend tokens
-        currency0.approve(address(poolManager), type(uint256).max);
-        currency1.approve(address(poolManager), type(uint256).max);
+        MockERC20(Currency.unwrap(currency0)).approve(address(poolManager), type(uint256).max);
+        MockERC20(Currency.unwrap(currency1)).approve(address(poolManager), type(uint256).max);
 
         // Place a limit order: sell token0 for token1 when tick <= -1000
         int24 targetTick = -1000;
@@ -99,7 +100,7 @@ contract LimitOrderHookTest is BaseTest {
         hook.placeOrder(poolKey, true, amountIn, targetTick, minAmountOut);
 
         // Check that order was placed
-        LimitOrderHook.LimitOrder memory order = hook.getOrder(poolId, 0);
+        Sucrose.SucroseOrder memory order = hook.getOrder(poolId, 0);
         assertEq(order.user, address(this));
         assertEq(order.zeroForOne, true);
         assertEq(order.amountIn, amountIn);
@@ -108,14 +109,14 @@ contract LimitOrderHookTest is BaseTest {
     }
 
     function testExecuteLimitOrder() public {
+        // Approve poolManager to spend tokens
+        MockERC20(Currency.unwrap(currency0)).approve(address(poolManager), type(uint256).max);
+        MockERC20(Currency.unwrap(currency1)).approve(address(poolManager), type(uint256).max);
+
         // First place an order
         int24 targetTick = TickMath.getTickAtSqrtPrice(Constants.SQRT_PRICE_1_1) - 100; // Below current tick
         uint256 amountIn = 1e18;
         uint256 minAmountOut = 0;
-
-        // Approve poolManager to spend tokens
-        currency0.approve(address(poolManager), type(uint256).max);
-        currency1.approve(address(poolManager), type(uint256).max);
 
         hook.placeOrder(poolKey, true, amountIn, targetTick, minAmountOut);
 
@@ -132,7 +133,7 @@ contract LimitOrderHookTest is BaseTest {
         });
 
         // Check that the order was executed (marked inactive)
-        LimitOrderHook.LimitOrder memory executedOrder = hook.getOrder(poolId, 0);
+        Sucrose.SucroseOrder memory executedOrder = hook.getOrder(poolId, 0);
         assertEq(executedOrder.active, false);
     }
 }

@@ -1,15 +1,17 @@
-# Uniswap v4 Hook Template
+# Uniswap v4 Limit Order Hook
 
-**A template for writing Uniswap v4 Hooks 🦄**
+**A Uniswap v4 Hook that enables on-chain limit orders 🦄**
 
 ### Get Started
 
-This template provides a starting point for writing Uniswap v4 Hooks, including a simple example and preconfigured test environment. Start by creating a new repository using the "Use this template" button at the top right of this page. Alternatively you can also click this link:
+This project implements a Uniswap v4 Hook that allows users to place limit orders that execute automatically during swaps when the price reaches specific tick levels. This provides centralized exchange-like limit order functionality fully on-chain.
+
+Start by creating a new repository using the "Use this template" button at the top right of this page. Alternatively you can also click this link:
 
 [![Use this Template](https://img.shields.io/badge/Use%20this%20Template-101010?style=for-the-badge&logo=github)](https://github.com/uniswapfoundation/v4-template/generate)
 
-1. The example hook [Counter.sol](src/Counter.sol) demonstrates the `beforeSwap()` and `afterSwap()` hooks
-2. The test template [Counter.t.sol](test/Counter.t.sol) preconfigures the v4 pool manager, test tokens, and test liquidity.
+1. The limit order hook [LimitOrderHook.sol](src/LimitOrderHook.sol) demonstrates the `beforeSwap()` hook with `BeforeSwapDelta` to intercept and modify swaps for order execution
+2. The test template [LimitOrderHook.t.sol](test/LimitOrderHook.t.sol) preconfigures the v4 pool manager, test tokens, and test liquidity with limit order scenarios.
 
 <details>
 <summary>Updating to v4-template:latest</summary>
